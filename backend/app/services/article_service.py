@@ -8,6 +8,7 @@ from bs4.element import NavigableString, PageElement
 from fastapi import Depends
 from returns.future import future_safe
 from returns.io import IOResultE
+from spacy.language import Language
 from spacy.tokens.span import Span
 from spacy.tokens.token import Token
 
@@ -61,9 +62,9 @@ class ArticleService:
 
     async def __parse_html(self, article: Article) -> str:
         nlp = LANGUAGE_MODEL[article.language]
-        raw_html = article.content
-        language = article.language
+        hard_words = self.get_hard_words(nlp, article)
 
+        raw_html = article.content
         soup = BeautifulSoup(raw_html, "lxml")
         stack: list[PageElement] = [soup]
 
@@ -80,33 +81,44 @@ class ArticleService:
                 continue
 
             if isinstance(node, NavigableString):
-                await self.__tokenize_text_node(node, soup, nlp)
+                await self.__tokenize_text_node(
+                    node, soup, nlp, hard_words, article.language
+                )
                 continue
 
+        print(type(nlp))
+        return str(soup)
+
+    def get_hard_words(
+        self,
+        nlp: Language,
+        article: Article,
+        k: float = 1.5,
+    ) -> list[str]:
+        language = article.language
         word_freq = LANGUAGE_WORD_FREQ[language]
+
         lemmas = [lemma_of_word(token, language) for token in nlp(article.plain_text)]
-        df2 = word_freq.filter(pl.col("word").is_in(lemmas))
-        df2 = df2.with_columns(
-            pl.col("score").cast(pl.Float64).log().alias("log_score")
-        )
-        stats = df2.select(
+
+        df = word_freq.filter(pl.col("word").is_in(lemmas))
+
+        mean, std = df.select(
             pl.col("log_score").mean().alias("mean"),
             pl.col("log_score").std().alias("std"),
-        )
-        mean = stats["mean"][0]
-        std = stats["std"][0]
+        ).row(0)
 
-        threshold = mean + 1.5 * std
-        hard_df = df2.filter(pl.col("log_score") > threshold)
-        print(hard_df)
-        return str(soup)
+        threshold = mean + k * std
+
+        return df.filter(pl.col("log_score") > threshold).get_column("word").to_list()
 
     @staticmethod
     def __should_skip_node(node: Tag | BeautifulSoup) -> bool:
         """Return True when we do not want to tokenize inside this element."""
         return node.name in {"pre"}
 
-    async def __render_sentence(self, sent: Span, soup: BeautifulSoup):
+    async def __render_sentence(
+        self, sent: Span, soup: BeautifulSoup, hard_words: list[str], language: str
+    ):
         s = await self.__sentence_repo.get_or_create(sent.text.strip())
         sent_id = s.id.hex
 
@@ -130,8 +142,18 @@ class ArticleService:
                         "id": word_id,
                     },
                 )
-                word_span.string = text
-                sent_span.append(word_span)
+                if lemma_of_word(token, language) in hard_words:
+                    ruby = soup.new_tag("ruby")
+                    rb = soup.new_tag("rb")
+                    rb.string = text
+                    rt = soup.new_tag("rt")
+                    rt.string = "palceholder"
+                    ruby.append(rb)
+                    ruby.append(rt)
+                    sent_span.append(ruby)
+                else:
+                    word_span.string = text
+                    sent_span.append(word_span)
             else:
                 sent_span.append(soup.new_string(text))
 
@@ -158,7 +180,12 @@ class ArticleService:
         )
 
     async def __tokenize_text_node(
-        self, node: NavigableString, soup: BeautifulSoup, nlp
+        self,
+        node: NavigableString,
+        soup: BeautifulSoup,
+        nlp: Language,
+        hard_words: list[str],
+        language: str,
     ) -> None:
         parent = node.parent
         if parent is None:
@@ -169,7 +196,10 @@ class ArticleService:
             return
 
         doc = nlp(raw_text)
-        new_nodes = [await self.__render_sentence(sent, soup) for sent in doc.sents]
+        new_nodes = [
+            await self.__render_sentence(sent, soup, hard_words, language)
+            for sent in doc.sents
+        ]
 
         for new in reversed(new_nodes):
             node.insert_after(new)
