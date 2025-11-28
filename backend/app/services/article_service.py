@@ -1,6 +1,7 @@
 from collections.abc import AsyncGenerator
 
 import httpx
+import polars as pl
 import spacy
 from bs4 import BeautifulSoup, Tag
 from bs4.element import NavigableString, PageElement
@@ -8,6 +9,7 @@ from fastapi import Depends
 from returns.future import future_safe
 from returns.io import IOResultE
 from spacy.tokens.span import Span
+from spacy.tokens.token import Token
 
 from app.core import SETTING
 from app.repos.sentence_repo import SentenceRepository, get_sentence_repo
@@ -19,6 +21,22 @@ LANGUAGE_MODEL = {
     "zh-cn": spacy.load("zh_core_web_lg"),
     "ja": spacy.load("ja_core_news_lg"),
 }
+
+LANGUAGE_WORD_FREQ = {
+    "en": pl.read_parquet("resources/english_freq.parquet"),
+    "zh-cn": pl.read_parquet("resources/chinese_freq.parquet"),
+    "ja": pl.read_parquet("resources/japanese_freq.parquet"),
+}
+
+
+def lemma_of_word(token: Token, language: str):
+    match language:
+        case "en":
+            return token.lemma_
+        case "zh-cn" | "ja":
+            return token.text.strip()
+        case _:
+            raise RuntimeError("Unreachable")
 
 
 class ArticleService:
@@ -44,6 +62,7 @@ class ArticleService:
     async def __parse_html(self, article: Article) -> str:
         nlp = LANGUAGE_MODEL[article.language]
         raw_html = article.content
+        language = article.language
 
         soup = BeautifulSoup(raw_html, "lxml")
         stack: list[PageElement] = [soup]
@@ -64,6 +83,22 @@ class ArticleService:
                 await self.__tokenize_text_node(node, soup, nlp)
                 continue
 
+        word_freq = LANGUAGE_WORD_FREQ[language]
+        lemmas = [lemma_of_word(token, language) for token in nlp(article.plain_text)]
+        df2 = word_freq.filter(pl.col("word").is_in(lemmas))
+        df2 = df2.with_columns(
+            pl.col("score").cast(pl.Float64).log().alias("log_score")
+        )
+        stats = df2.select(
+            pl.col("log_score").mean().alias("mean"),
+            pl.col("log_score").std().alias("std"),
+        )
+        mean = stats["mean"][0]
+        std = stats["std"][0]
+
+        threshold = mean + 1.5 * std
+        hard_df = df2.filter(pl.col("log_score") > threshold)
+        print(hard_df)
         return str(soup)
 
     @staticmethod
