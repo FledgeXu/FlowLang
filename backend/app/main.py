@@ -30,7 +30,7 @@ app.add_middleware(
 @app.get("/", response_class=HTMLResponse)
 async def read_root(service: ArticleService = Depends(get_article_service)):
     match await service.fetch_url(
-        "https://huggingface.co/blog/zh/chinese-language-blog"
+        "https://www.douwa-douyou.jp/contents/html/douwastory/douwastory1_05.shtml"
     ):
         case IOSuccess(Success(article)):
             return article

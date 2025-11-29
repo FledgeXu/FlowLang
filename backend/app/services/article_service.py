@@ -2,7 +2,6 @@ from collections.abc import AsyncGenerator
 
 import httpx
 import polars as pl
-import spacy
 from bs4 import BeautifulSoup, Tag
 from bs4.element import NavigableString, PageElement
 from fastapi import Depends
@@ -17,17 +16,7 @@ from app.repos.sentence_repo import SentenceRepository, get_sentence_repo
 from app.repos.word_repo import WordRepository, get_word_repo
 from app.schemas import Article
 
-LANGUAGE_MODEL = {
-    "en": spacy.load("en_core_web_lg"),
-    "zh-cn": spacy.load("zh_core_web_lg"),
-    "ja": spacy.load("ja_core_news_lg"),
-}
-
-LANGUAGE_WORD_FREQ = {
-    "en": pl.read_parquet("resources/english_freq.parquet"),
-    "zh-cn": pl.read_parquet("resources/chinese_freq.parquet"),
-    "ja": pl.read_parquet("resources/japanese_freq.parquet"),
-}
+from .language_loader import LanguageLoader, get_language_loader
 
 
 def lemma_of_word(token: Token, language: str):
@@ -45,9 +34,11 @@ class ArticleService:
         self,
         word_repo: WordRepository,
         sentence_repo: SentenceRepository,
+        language_loader: LanguageLoader,
     ) -> None:
         self.__word_repo = word_repo
         self.__sentence_repo = sentence_repo
+        self.__language_loader = language_loader
 
     async def fetch_url(self, url: str) -> IOResultE[str]:
         article_result = self._download_article(url)
@@ -61,16 +52,25 @@ class ArticleService:
             return Article(r.text)
 
     async def __parse_html(self, article: Article) -> str:
-        nlp = LANGUAGE_MODEL[article.language]
-        hard_words = self.get_hard_words(nlp, article)
+        nlp = self.__language_loader.model(article.language)
+        hard_words = set(self.get_hard_words(nlp, article))
 
-        raw_html = article.content
-        soup = BeautifulSoup(raw_html, "lxml")
+        soup = BeautifulSoup(article.content, "lxml")
+        await self.__tokenize_dom(soup, nlp, hard_words, article.language)
+
+        return str(soup)
+
+    async def __tokenize_dom(
+        self,
+        soup: BeautifulSoup,
+        nlp: Language,
+        hard_words: set[str],
+        language: str,
+    ) -> None:
         stack: list[PageElement] = [soup]
 
         while stack:
             node = stack.pop()
-
             if isinstance(node, (Tag, BeautifulSoup)):
                 if self.__should_skip_node(node):
                     continue
@@ -81,32 +81,26 @@ class ArticleService:
                 continue
 
             if isinstance(node, NavigableString):
-                await self.__tokenize_text_node(
-                    node, soup, nlp, hard_words, article.language
-                )
-                continue
-
-        print(type(nlp))
-        return str(soup)
+                await self.__tokenize_text_node(node, soup, nlp, hard_words, language)
 
     def get_hard_words(
-        self,
-        nlp: Language,
-        article: Article,
-        k: float = 1.5,
+        self, nlp: Language, article: Article, k: float = 1
     ) -> list[str]:
         language = article.language
-        word_freq = LANGUAGE_WORD_FREQ[language]
+        word_freq = self.__language_loader.word_freq(language)
 
         lemmas = [lemma_of_word(token, language) for token in nlp(article.plain_text)]
 
         df = word_freq.filter(pl.col("word").is_in(lemmas))
+        if df.height == 0:
+            return []
 
         mean, std = df.select(
             pl.col("log_score").mean().alias("mean"),
             pl.col("log_score").std().alias("std"),
         ).row(0)
 
+        std = std or 0
         threshold = mean + k * std
 
         return df.filter(pl.col("log_score") > threshold).get_column("word").to_list()
@@ -117,12 +111,10 @@ class ArticleService:
         return node.name in {"pre"}
 
     async def __render_sentence(
-        self, sent: Span, soup: BeautifulSoup, hard_words: list[str], language: str
+        self, sent: Span, soup: BeautifulSoup, hard_words: set[str], language: str
     ):
-        s = await self.__sentence_repo.get_or_create(sent.text.strip())
-        sent_id = s.id.hex
-
-        sent_span = soup.new_tag("span", attrs={"class": "sent", "id": sent_id})
+        sentence = await self.__sentence_repo.get_or_create(sent.text.strip())
+        sent_span = soup.new_tag("span", attrs={"class": "sent", "id": sentence.id.hex})
         has_valid_word = False
 
         for token in sent:
@@ -130,35 +122,16 @@ class ArticleService:
             if not text:
                 continue
 
-            w = await self.__word_repo.get_or_create(text.strip())
-            word_id = w.id.hex
-
             if self.__is_word_token(token):
-                has_valid_word = True
-                word_span = soup.new_tag(
-                    "span",
-                    attrs={
-                        "class": "word",
-                        "id": word_id,
-                    },
+                word_node = await self.__build_word_node(
+                    token, soup, hard_words, language
                 )
-                if lemma_of_word(token, language) in hard_words:
-                    ruby = soup.new_tag("ruby")
-                    rb = soup.new_tag("rb")
-                    rb.string = text
-                    rt = soup.new_tag("rt")
-                    rt.string = "palceholder"
-                    ruby.append(rb)
-                    ruby.append(rt)
-                    sent_span.append(ruby)
-                else:
-                    word_span.string = text
-                    sent_span.append(word_span)
+                has_valid_word = True
+                sent_span.append(word_node)
             else:
                 sent_span.append(soup.new_string(text))
 
-            if token.whitespace_:
-                sent_span.append(soup.new_string(token.whitespace_))
+            self.__append_whitespace(sent_span, soup, token)
 
         if has_valid_word:
             return sent_span
@@ -166,8 +139,47 @@ class ArticleService:
         plain_text = "".join(tok.text_with_ws for tok in sent)
         return soup.new_string(plain_text)
 
+    async def __build_word_node(
+        self,
+        token: Token,
+        soup: BeautifulSoup,
+        hard_words: set[str],
+        language: str,
+    ) -> Tag:
+        word = await self.__word_repo.get_or_create(token.text.strip())
+        lemma = lemma_of_word(token, language)
+
+        if lemma in hard_words:
+            return self.__build_ruby_node(soup, token.text)
+
+        word_span = soup.new_tag(
+            "span",
+            attrs={
+                "class": "word",
+                "id": word.id.hex,
+            },
+        )
+        word_span.string = token.text
+        return word_span
+
     @staticmethod
-    def __is_word_token(token) -> bool:
+    def __build_ruby_node(soup: BeautifulSoup, text: str) -> Tag:
+        ruby = soup.new_tag("ruby")
+        rb = soup.new_tag("rb")
+        rb.string = text
+        rt = soup.new_tag("rt")
+        rt.string = "placeholder"
+        ruby.append(rb)
+        ruby.append(rt)
+        return ruby
+
+    @staticmethod
+    def __append_whitespace(container: Tag, soup: BeautifulSoup, token: Token) -> None:
+        if token.whitespace_:
+            container.append(soup.new_string(token.whitespace_))
+
+    @staticmethod
+    def __is_word_token(token: Token) -> bool:
         is_number_word = token.pos_ == "NUM" and not token.like_num
 
         return (
@@ -184,7 +196,7 @@ class ArticleService:
         node: NavigableString,
         soup: BeautifulSoup,
         nlp: Language,
-        hard_words: list[str],
+        hard_words: set[str],
         language: str,
     ) -> None:
         parent = node.parent
@@ -210,5 +222,6 @@ class ArticleService:
 async def get_article_service(
     word_repo: WordRepository = Depends(get_word_repo),
     sentence_repo: SentenceRepository = Depends(get_sentence_repo),
+    language_loader: LanguageLoader = Depends(get_language_loader),
 ) -> AsyncGenerator[ArticleService, None]:
-    yield ArticleService(word_repo, sentence_repo)
+    yield ArticleService(word_repo, sentence_repo, language_loader)
