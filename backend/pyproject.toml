@@ -22,8 +22,6 @@ dependencies = [
     "aiosqlite>=0.21.0",
     "greenlet>=3.2.4",
     "polars>=1.35.2",
-    "jamdict>=0.1a11.post2",
-    "jamdict-data>=1.5",
 ]
 
 
