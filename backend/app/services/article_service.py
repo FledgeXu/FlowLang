@@ -49,7 +49,11 @@ class ArticleService:
         soup = BeautifulSoup(article.content, "lxml")
         await self.__tokenize_dom(soup, nlp, hard_words, article.language)
 
-        return str(soup)
+        body = soup.body
+        if body is None:
+            return str(soup)
+
+        return body.decode_contents()
 
     def __get_hard_words(
         self, nlp: Language, article: Article, k: float = 1
