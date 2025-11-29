@@ -7,10 +7,6 @@
            hover:bg-slate-200 dark:hover:bg-slate-700;
   }
 
-  .word.hard-word {
-    @apply bg-amber-50 border border-amber-300 text-slate-900
-           dark:bg-amber-900/40 dark:border-amber-500 dark:text-amber-50;
-  }
   .reader sup {
     @apply text-xs
            text-slate-500
@@ -18,5 +14,16 @@
            leading-none
            align-super
            ml-0.5;
+  }
+  ruby rt {
+    @apply opacity-0 transition-opacity duration-150;
+  }
+
+  ruby:hover rt {
+    @apply opacity-100;
+  }
+
+  ruby .hard-word {
+    @apply underline decoration-dotted underline-offset-4;
   }
 }
