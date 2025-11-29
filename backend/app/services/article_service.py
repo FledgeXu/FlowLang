@@ -1,6 +1,7 @@
 from collections.abc import AsyncGenerator
 
 import httpx
+from app import nlp_utils
 import polars as pl
 from bs4 import BeautifulSoup, Tag
 from bs4.element import NavigableString, PageElement
@@ -17,16 +18,6 @@ from app.repos.word_repo import WordRepository, get_word_repo
 from app.schemas import Article
 
 from .language_loader import LanguageLoader, get_language_loader
-
-
-def lemma_of_word(token: Token, language: str):
-    match language:
-        case "en":
-            return token.lemma_
-        case "zh-cn" | "ja":
-            return token.text.strip()
-        case _:
-            raise RuntimeError("Unreachable")
 
 
 class ArticleService:
@@ -66,7 +57,10 @@ class ArticleService:
         language = article.language
         word_freq = self.__language_loader.word_freq(language)
 
-        lemmas = [lemma_of_word(token, language) for token in nlp(article.plain_text)]
+        lemmas = [
+            nlp_utils.lemma_of_word(token, language)
+            for token in nlp(article.plain_text)
+        ]
 
         df = word_freq.filter(pl.col("word").is_in(lemmas))
         if df.height == 0:
@@ -174,7 +168,7 @@ class ArticleService:
         language: str,
     ) -> Tag:
         word = await self.__word_repo.get_or_create(token.text.strip())
-        lemma = lemma_of_word(token, language)
+        lemma = nlp_utils.lemma_of_word(token, language)
 
         word_span = soup.new_tag(
             "span",
