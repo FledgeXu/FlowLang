@@ -12,10 +12,10 @@ from spacy.tokens.span import Span
 from spacy.tokens.token import Token
 
 from app import nlp_utils
+from app.content import Article
 from app.core import SETTING
 from app.repos.sentence_repo import SentenceRepository, get_sentence_repo
 from app.repos.word_repo import WordRepository, get_word_repo
-from app.schemas import Article
 
 from .language_loader_service import LanguageLoaderService, get_language_loader_service
 
