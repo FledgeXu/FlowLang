@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import UUID, DateTime, MetaData, Text, func
+from sqlalchemy import UUID, DateTime, ForeignKey, Integer, MetaData, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 convention = {
@@ -40,6 +40,23 @@ class Word(Base):
     )
 
     text: Mapped[str] = mapped_column(Text, unique=True, index=True)
+
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class WordLookup(Base):
+    __tablename__ = "word_lookups"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+
+    sentence_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("sentences.id"), nullable=True, index=True
+    )
+    word_id: Mapped[uuid.UUID] = mapped_column(
+        ForeignKey("words.id"), nullable=True, index=True
+    )
 
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

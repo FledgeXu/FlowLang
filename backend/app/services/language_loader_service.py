@@ -20,7 +20,7 @@ LANGUAGE_RESOURCES: dict[str, LanguageResource] = {
 }
 
 
-class LanguageLoader:
+class LanguageLoaderService:
     """Lazy loader for spaCy models and word frequency tables."""
 
     def __init__(
@@ -48,5 +48,5 @@ class LanguageLoader:
         return self._freq_cache[language]
 
 
-async def get_language_loader() -> AsyncGenerator[LanguageLoader, None]:
-    yield LanguageLoader()
+async def get_language_loader_service() -> AsyncGenerator[LanguageLoaderService, None]:
+    yield LanguageLoaderService()

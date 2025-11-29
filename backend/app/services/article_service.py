@@ -1,7 +1,6 @@
 from collections.abc import AsyncGenerator
 
 import httpx
-from app import nlp_utils
 import polars as pl
 from bs4 import BeautifulSoup, Tag
 from bs4.element import NavigableString, PageElement
@@ -12,12 +11,13 @@ from spacy.language import Language
 from spacy.tokens.span import Span
 from spacy.tokens.token import Token
 
+from app import nlp_utils
 from app.core import SETTING
 from app.repos.sentence_repo import SentenceRepository, get_sentence_repo
 from app.repos.word_repo import WordRepository, get_word_repo
 from app.schemas import Article
 
-from .language_loader import LanguageLoader, get_language_loader
+from .language_loader_service import LanguageLoaderService, get_language_loader_service
 
 
 class ArticleService:
@@ -25,7 +25,7 @@ class ArticleService:
         self,
         word_repo: WordRepository,
         sentence_repo: SentenceRepository,
-        language_loader: LanguageLoader,
+        language_loader: LanguageLoaderService,
     ) -> None:
         self.__word_repo = word_repo
         self.__sentence_repo = sentence_repo
@@ -135,7 +135,9 @@ class ArticleService:
         self, sent: Span, soup: BeautifulSoup, hard_words: set[str], language: str
     ):
         sentence = await self.__sentence_repo.get_or_create(sent.text.strip())
-        sent_span = soup.new_tag("span", attrs={"class": "sent", "id": sentence.id.hex})
+        sent_span = soup.new_tag(
+            "span", attrs={"class": "sent", "sent-id": sentence.id.hex}
+        )
         has_valid_word = False
 
         for token in sent:
@@ -173,28 +175,16 @@ class ArticleService:
         word_span = soup.new_tag(
             "span",
             attrs={
-                "class": "word",
-                "id": word.id.hex,
+                "word-id": word.id.hex,
             },
         )
 
         if lemma in hard_words:
-            ruby_node = self.__build_ruby_node(soup, token.text)
-            word_span.append(ruby_node)
+            word_span["class"] = "word hard-word"
         else:
-            word_span.string = token.text
+            word_span["class"] = "word"
+        word_span.string = token.text
         return word_span
-
-    @staticmethod
-    def __build_ruby_node(soup: BeautifulSoup, text: str) -> Tag:
-        ruby = soup.new_tag("ruby")
-        rb = soup.new_tag("rb")
-        rb.string = text
-        rt = soup.new_tag("rt")
-        rt.string = "placeholder"
-        ruby.append(rb)
-        ruby.append(rt)
-        return ruby
 
     @staticmethod
     def __append_whitespace(container: Tag, soup: BeautifulSoup, token: Token) -> None:
@@ -218,6 +208,8 @@ class ArticleService:
 async def get_article_service(
     word_repo: WordRepository = Depends(get_word_repo),
     sentence_repo: SentenceRepository = Depends(get_sentence_repo),
-    language_loader: LanguageLoader = Depends(get_language_loader),
+    language_loader_service: LanguageLoaderService = Depends(
+        get_language_loader_service
+    ),
 ) -> AsyncGenerator[ArticleService, None]:
-    yield ArticleService(word_repo, sentence_repo, language_loader)
+    yield ArticleService(word_repo, sentence_repo, language_loader_service)
