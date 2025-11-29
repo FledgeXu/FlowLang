@@ -41,11 +41,11 @@ class ArticleService:
         self.__language_loader = language_loader
 
     async def fetch_url(self, url: str) -> IOResultE[str]:
-        article_result = self._download_article(url)
+        article_result = self.__download_article(url)
         return await article_result.bind_awaitable(self.__parse_html)
 
     @future_safe
-    async def _download_article(self, url: str) -> Article:
+    async def __download_article(self, url: str) -> Article:
         async with httpx.AsyncClient(timeout=SETTING.TIMEOUT_TIME) as client:
             r = await client.get(url)
             r.raise_for_status()
@@ -53,12 +53,34 @@ class ArticleService:
 
     async def __parse_html(self, article: Article) -> str:
         nlp = self.__language_loader.model(article.language)
-        hard_words = set(self.get_hard_words(nlp, article))
+        hard_words = set(self.__get_hard_words(nlp, article))
 
         soup = BeautifulSoup(article.content, "lxml")
         await self.__tokenize_dom(soup, nlp, hard_words, article.language)
 
         return str(soup)
+
+    def __get_hard_words(
+        self, nlp: Language, article: Article, k: float = 1
+    ) -> list[str]:
+        language = article.language
+        word_freq = self.__language_loader.word_freq(language)
+
+        lemmas = [lemma_of_word(token, language) for token in nlp(article.plain_text)]
+
+        df = word_freq.filter(pl.col("word").is_in(lemmas))
+        if df.height == 0:
+            return []
+
+        mean, std = df.select(
+            pl.col("log_score").mean().alias("mean"),
+            pl.col("log_score").std().alias("std"),
+        ).row(0)
+
+        std = std or 0
+        threshold = mean + k * std
+
+        return df.filter(pl.col("log_score") > threshold).get_column("word").to_list()
 
     async def __tokenize_dom(
         self,
@@ -83,32 +105,37 @@ class ArticleService:
             if isinstance(node, NavigableString):
                 await self.__tokenize_text_node(node, soup, nlp, hard_words, language)
 
-    def get_hard_words(
-        self, nlp: Language, article: Article, k: float = 1
-    ) -> list[str]:
-        language = article.language
-        word_freq = self.__language_loader.word_freq(language)
-
-        lemmas = [lemma_of_word(token, language) for token in nlp(article.plain_text)]
-
-        df = word_freq.filter(pl.col("word").is_in(lemmas))
-        if df.height == 0:
-            return []
-
-        mean, std = df.select(
-            pl.col("log_score").mean().alias("mean"),
-            pl.col("log_score").std().alias("std"),
-        ).row(0)
-
-        std = std or 0
-        threshold = mean + k * std
-
-        return df.filter(pl.col("log_score") > threshold).get_column("word").to_list()
-
     @staticmethod
     def __should_skip_node(node: Tag | BeautifulSoup) -> bool:
         """Return True when we do not want to tokenize inside this element."""
         return node.name in {"pre"}
+
+    async def __tokenize_text_node(
+        self,
+        node: NavigableString,
+        soup: BeautifulSoup,
+        nlp: Language,
+        hard_words: set[str],
+        language: str,
+    ) -> None:
+        parent = node.parent
+        if parent is None:
+            return
+
+        raw_text = str(node)
+        if raw_text.strip() == "":
+            return
+
+        doc = nlp(raw_text)
+        new_nodes = [
+            await self.__render_sentence(sent, soup, hard_words, language)
+            for sent in doc.sents
+        ]
+
+        for new in reversed(new_nodes):
+            node.insert_after(new)
+
+        node.extract()
 
     async def __render_sentence(
         self, sent: Span, soup: BeautifulSoup, hard_words: set[str], language: str
@@ -149,9 +176,6 @@ class ArticleService:
         word = await self.__word_repo.get_or_create(token.text.strip())
         lemma = lemma_of_word(token, language)
 
-        if lemma in hard_words:
-            return self.__build_ruby_node(soup, token.text)
-
         word_span = soup.new_tag(
             "span",
             attrs={
@@ -159,7 +183,12 @@ class ArticleService:
                 "id": word.id.hex,
             },
         )
-        word_span.string = token.text
+
+        if lemma in hard_words:
+            ruby_node = self.__build_ruby_node(soup, token.text)
+            word_span.append(ruby_node)
+        else:
+            word_span.string = token.text
         return word_span
 
     @staticmethod
@@ -190,33 +219,6 @@ class ArticleService:
             and not token.like_email
             and not token.text.isdigit()
         )
-
-    async def __tokenize_text_node(
-        self,
-        node: NavigableString,
-        soup: BeautifulSoup,
-        nlp: Language,
-        hard_words: set[str],
-        language: str,
-    ) -> None:
-        parent = node.parent
-        if parent is None:
-            return
-
-        raw_text = str(node)
-        if raw_text.strip() == "":
-            return
-
-        doc = nlp(raw_text)
-        new_nodes = [
-            await self.__render_sentence(sent, soup, hard_words, language)
-            for sent in doc.sents
-        ]
-
-        for new in reversed(new_nodes):
-            node.insert_after(new)
-
-        node.extract()
 
 
 async def get_article_service(
