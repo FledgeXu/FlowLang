@@ -5,8 +5,10 @@ function App() {
   const { data, isLoading, isError, error } = useQuery({
     queryKey: ["html"],
     queryFn: async () => {
-      const resp = await apiClient.get<string>("/", { responseType: "text" });
-      return resp.data;
+      const resp = await apiClient.post<string>("/article/fetch", {
+        url: "https://worksinprogress.co/issue/the-great-downzoning/",
+      });
+      return resp.data.text;
     },
   });
 
