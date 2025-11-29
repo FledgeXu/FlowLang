@@ -25,7 +25,7 @@ class Sentence(Base):
         UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
     )
 
-    text: Mapped[str]
+    text: Mapped[str] = mapped_column(Text, unique=True, index=True)
 
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
