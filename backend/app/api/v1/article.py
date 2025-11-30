@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from returns.io import IOFailure, IOSuccess
 from returns.result import Failure, Success
 
-from app.schemas import ArticleFetch, ArticleResp
+from app.schemas import ArticleReq, ArticleResp
 from app.services.article_service import ArticleService, get_article_service
 
 router = APIRouter(prefix="/article", tags=["article"])
@@ -10,7 +10,7 @@ router = APIRouter(prefix="/article", tags=["article"])
 
 @router.post("/fetch", response_model=ArticleResp)
 async def list_users(
-    article_fetch: ArticleFetch,
+    article_fetch: ArticleReq,
     article_service: ArticleService = Depends(get_article_service),
 ):
     match await article_service.fetch_url(article_fetch.url):
