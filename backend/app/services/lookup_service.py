@@ -36,7 +36,7 @@ Provide the most accurate translation of the target word **as it is used in the 
 Constraints:
 - Output ONLY the translation, no explanations.
 - Translation must be in the language specified by {SETTING.LOCALE}.
-- Keep the output short: ideally around 10 tokens or fewer.
+- Keep the output short: ideally around 20 tokens or fewer.
 - Do NOT translate the whole sentence; only the given word in context.""",
         },
         {
