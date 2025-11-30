@@ -3,6 +3,6 @@ export type ArticleReq = {
 };
 
 export type ArticleResp = {
-    text: string;
+    rawHtml: string;
 };
 

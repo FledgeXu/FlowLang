@@ -15,7 +15,7 @@ async def list_users(
 ):
     match await article_service.fetch_url(article_fetch.url):
         case IOSuccess(Success(text)):
-            return ArticleResp(text=text)
+            return ArticleResp(raw_html=text)
         case IOFailure(Failure(err)):
             raise HTTPException(
                 status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail=str(err)
