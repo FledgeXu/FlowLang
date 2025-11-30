@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, HTTPException, status
 from returns.io import IOFailure, IOSuccess
 from returns.result import Failure, Success
 
-from app.schemas import ArticleFetch, ArticleResp, LookUpResp, LookUpReq
+from app.schemas import ArticleFetch, ArticleResp, LookupResp, LookupReq
 from app.services.article_service import ArticleService, get_article_service
 
 router = APIRouter(prefix="/article", tags=["article"])

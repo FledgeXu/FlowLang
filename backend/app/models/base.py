@@ -58,6 +58,8 @@ class WordLookup(Base):
         ForeignKey("words.id"), nullable=True, index=True
     )
 
+    text: Mapped[str]
+
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )

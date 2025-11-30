@@ -1,17 +1,19 @@
+import uuid
+
 from pydantic import BaseModel, ConfigDict
 from pydantic.alias_generators import to_camel
 
 
-class LookUpReq(BaseModel):
+class LookupReq(BaseModel):
     model_config = ConfigDict(alias_generator=to_camel)
-    sentence_id: str
-    word_id: str
+    sentence_id: uuid.UUID
+    word_id: uuid.UUID
 
 
-class LookUpResp(BaseModel):
+class LookupResp(BaseModel):
     model_config = ConfigDict(
         extra="forbid", alias_generator=to_camel, populate_by_name=True
     )
 
-    word_id: str
-    text: str
+    word_id: uuid.UUID
+    text: str | None

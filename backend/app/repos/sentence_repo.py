@@ -30,8 +30,8 @@ class SentenceRepository(BaseRepository):
         await self._session.refresh(word)
         return word
 
-    async def get_by_id(self, word_id: uuid.UUID) -> Maybe[Sentence]:
-        stmt = select(Sentence).where(Sentence.id == word_id)
+    async def get_by_id(self, sentence_id: uuid.UUID) -> Maybe[Sentence]:
+        stmt = select(Sentence).where(Sentence.id == sentence_id)
         result = await self._session.execute(stmt)
         return Maybe.from_optional(result.scalar_one_or_none())
 

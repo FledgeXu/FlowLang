@@ -1,10 +1,15 @@
-from fastapi import APIRouter
+from fastapi import APIRouter, Depends
 
-from app.schemas import LookUpReq, LookUpResp
+from app.schemas import LookupReq, LookupResp
+from app.services.lookup_service import LookupService, get_lookup_service
 
 router = APIRouter(prefix="/word", tags=["article"])
 
 
-@router.post("/translate", response_model=list[LookUpResp])
-async def translate_word(payload: list[LookUpReq]):
-    return [LookUpResp(word_id="6619d11755564b77aad7414d9f8032fd", text="HHH")]
+@router.post("/translate", response_model=list[LookupResp])
+async def translate_word(
+    payload: list[LookupReq],
+    lookup_service: LookupService = Depends(get_lookup_service),
+):
+    return await lookup_service.lookup_word(payload)
+    # return [LookupResp(word_id="6619d11755564b77aad7414d9f8032fd", text="HHH")]
