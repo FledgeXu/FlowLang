@@ -48,7 +48,9 @@ async function annotateHtml(html: string): Promise<string> {
 
 function toLookupMap(results: LookupResp[]) {
   return new Map(
-    results.flatMap(({ wordId, text }) => (text ? [[wordId, text]] : [])),
+    results
+      .filter(r => r.text)
+      .map(r => [r.wordId, r.text!])
   );
 }
 
