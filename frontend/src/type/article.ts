@@ -1,8 +1,7 @@
 export type ArticleReq = {
-    url: string;
+  url: string;
 };
 
 export type ArticleResp = {
-    rawHtml: string;
+  rawHtml: string;
 };
-

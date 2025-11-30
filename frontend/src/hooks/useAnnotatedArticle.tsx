@@ -69,7 +69,7 @@ function toLookupMap(results: LookupResp[]) {
 
 function addRubyToHardWords(
   html: string,
-  textMap: Map<string, string>
+  textMap: Map<string, string>,
 ): ReactNode {
   return parse(html, {
     replace: (domNode) => {
