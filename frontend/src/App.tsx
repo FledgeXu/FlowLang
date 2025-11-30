@@ -1,16 +1,16 @@
 import "@/App.css";
-import { apiClient } from "@/api/client";
 import { useQuery } from "@tanstack/react-query";
 import { useEffect, useState } from "react";
+import { fetchArticle } from "./api/article";
 
 function App() {
   const { data, isLoading, isError, error } = useQuery({
-    queryKey: ["html"],
+    queryKey: ["fetch-html"],
     queryFn: async () => {
-      const resp = await apiClient.post<string>("/article/fetch", {
+      const resp = await fetchArticle({
         url: "https://www.penguin.co.uk/discover/articles/why-we-read-classics-italo-calvino",
       });
-      return resp.data.text;
+      return resp.text;
     },
   });
 
@@ -22,6 +22,7 @@ function App() {
     setEnhancedHtml(null);
 
     requestAnimationFrame(() => {
+      console.log(collectHardWordPairs(data));
       const htmlWithRuby = addRubyToHardWords(data);
       setEnhancedHtml(htmlWithRuby);
     });
@@ -71,4 +72,33 @@ function addRubyToHardWords(html: string): string {
 function getRubyText(word: string): string {
   console.log(word);
   return "placeholder";
+}
+
+export function collectHardWordPairs(html: string): string[][] {
+  const parser = new DOMParser();
+  const doc = parser.parseFromString(html, "text/html");
+
+  const hardWords = doc.querySelectorAll<HTMLElement>(".hard-word");
+
+  const result: string[][] = [];
+  const seen = new Set<string>();
+
+  hardWords.forEach((node) => {
+    const wordId = node.getAttribute("word-id");
+    if (!wordId) return;
+
+    const sentSpan = node.closest<HTMLElement>("span.sent[sent-id]");
+    if (!sentSpan) return;
+
+    const sentId = sentSpan.getAttribute("sent-id");
+    if (!sentId) return;
+
+    const key = `${sentId}:${wordId}`;
+    if (seen.has(key)) return;
+    seen.add(key);
+
+    result.push([sentId, wordId]);
+  });
+
+  return result;
 }
