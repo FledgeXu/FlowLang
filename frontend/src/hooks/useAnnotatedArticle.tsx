@@ -1,10 +1,22 @@
+import { useMemo, type ReactNode } from "react";
 import { useQuery } from "@tanstack/react-query";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
+import parse, {
+  attributesToProps,
+  domToReact,
+  Element,
+  type DOMNode,
+} from "html-react-parser";
 import { fetchArticle } from "@/api/article";
 import { lookupWords } from "@/api/lookup";
 import type { LookupReq, LookupResp } from "@/type/lookup";
 
 export function useAnnotatedArticle(url: string) {
-  const articleQuery = useQuery({
+  const articleQuery = useQuery<string>({
     queryKey: ["fetch-html", url],
     queryFn: async () => {
       const resp = await fetchArticle({ url });
@@ -12,23 +24,28 @@ export function useAnnotatedArticle(url: string) {
     },
   });
 
-  const annotatedQuery = useQuery({
+  const annotatedQuery = useQuery<ReactNode>({
     queryKey: ["annotated-html", url, articleQuery.data],
     enabled: Boolean(articleQuery.data),
     queryFn: () => annotateHtml(articleQuery.data!),
   });
 
+  const fallbackContent = useMemo<ReactNode | null>(() => {
+    if (!articleQuery.data) return null;
+    return parse(articleQuery.data);
+  }, [articleQuery.data]);
+
   return {
-    html: annotatedQuery.data ?? articleQuery.data ?? "",
+    content: annotatedQuery.data ?? fallbackContent,
     isLoading: articleQuery.isLoading,
     isError: articleQuery.isError,
     error: articleQuery.error,
   };
 }
 
-async function annotateHtml(html: string): Promise<string> {
+async function annotateHtml(html: string): Promise<ReactNode> {
   const pairs = collectHardWordPairs(html);
-  if (pairs.length === 0) return html;
+  if (pairs.length === 0) return parse(html);
 
   try {
     const req: LookupReq[] = pairs.map(({ sentenceId, wordId }) => ({
@@ -42,55 +59,45 @@ async function annotateHtml(html: string): Promise<string> {
     return addRubyToHardWords(html, textMap);
   } catch (e) {
     console.error("lookupWords failed", e);
-    return html;
+    return parse(html);
   }
 }
 
 function toLookupMap(results: LookupResp[]) {
-  return new Map(
-    results
-      .filter(r => r.text)
-      .map(r => [r.wordId, r.text!])
-  );
+  return new Map(results.filter((r) => r.text).map((r) => [r.wordId, r.text!]));
 }
 
 function addRubyToHardWords(
   html: string,
-  textMap: Map<string, string>,
-): string {
-  const parser = new DOMParser();
-  const doc = parser.parseFromString(html, "text/html");
+  textMap: Map<string, string>
+): ReactNode {
+  return parse(html, {
+    replace: (domNode) => {
+      if (!(domNode instanceof Element)) return;
 
-  const hardWordNodes = Array.from(
-    doc.querySelectorAll<HTMLElement>(".hard-word"),
-  );
+      const classNames =
+        domNode.attribs?.class?.split(/\s+/).filter(Boolean) ?? [];
+      const isHardWord = classNames.includes("hard-word");
+      if (!isHardWord) return;
 
-  hardWordNodes
-    .map((node) => ({
-      node,
-      wordId: node.getAttribute("word-id"),
-      sentenceNode: node.closest<HTMLElement>("span.sent[sent-id]"),
-      displayText: node.textContent?.trim() || "",
-    }))
-    .filter(
-      ({ wordId, sentenceNode, displayText }) =>
-        Boolean(wordId) && Boolean(sentenceNode) && Boolean(displayText),
-    )
-    .forEach(({ node, wordId }) => {
-      const rubyText = textMap.get(wordId!) ?? "not found"; // fallback placeholder when lookup misses
+      const wordId = domNode.attribs["word-id"];
+      if (!wordId) return;
 
-      const ruby = doc.createElement("ruby");
-      const rt = doc.createElement("rt");
+      const rubyText = textMap.get(wordId) ?? "not found"; // fallback placeholder when lookup misses
+      const childProps = attributesToProps(domNode.attribs, domNode.name);
 
-      rt.textContent = rubyText;
-
-      node.replaceWith(ruby);
-      ruby.appendChild(node);
-      ruby.appendChild(rt);
-    });
-
-  // Return only the body inner HTML
-  return doc.body.innerHTML;
+      return (
+        <Tooltip>
+          <TooltipTrigger>
+            <span {...childProps}>
+              {domToReact(domNode.children as unknown as DOMNode[])}
+            </span>
+          </TooltipTrigger>
+          <TooltipContent>{rubyText}</TooltipContent>
+        </Tooltip>
+      );
+    },
+  });
 }
 
 export type HardWordPair = {

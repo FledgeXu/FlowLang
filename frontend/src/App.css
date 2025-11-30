@@ -15,15 +15,8 @@
            align-super
            ml-0.5;
   }
-  ruby rt {
-    @apply opacity-0 transition-opacity duration-150;
-  }
 
-  ruby:hover rt {
-    @apply opacity-100;
-  }
-
-  ruby .hard-word {
+  span .hard-word {
     @apply underline decoration-dotted underline-offset-4;
   }
 }

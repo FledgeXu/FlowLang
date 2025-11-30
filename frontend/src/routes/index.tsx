@@ -10,17 +10,15 @@ export const Route = createFileRoute("/")({
 });
 
 function RootComponent() {
-  const { html, isLoading, isError, error } = useAnnotatedArticle(ARTICLE_URL);
+  const { content, isLoading, isError, error } =
+    useAnnotatedArticle(ARTICLE_URL);
 
   if (isLoading) return <>Loading...</>;
   if (isError) return <>Error: {(error as Error).message}</>;
 
   return (
     <div className="mx-auto max-w-3xl p-6">
-      <article
-        className="prose reader"
-        dangerouslySetInnerHTML={{ __html: html }}
-      />
+      <article className="prose reader">{content}</article>
     </div>
   );
 }
