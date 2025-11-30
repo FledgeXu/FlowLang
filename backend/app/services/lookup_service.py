@@ -53,50 +53,102 @@ word: {word}
 class LookupService:
     def __init__(
         self,
-        word_repo: WordRepository,
-        sentence_repo: SentenceRepository,
-        word_lookup_repo: WordLookupRepository,
+        word_repository: WordRepository,
+        sentence_repository: SentenceRepository,
+        word_lookup_repository: WordLookupRepository,
     ) -> None:
-        self.__word_repo = word_repo
-        self.__sentence_repo = sentence_repo
-        self.__word_lookup_repo = word_lookup_repo
+        self.__word_repository = word_repository
+        self.__sentence_repository = sentence_repository
+        self.__word_lookup_repository = word_lookup_repository
 
-    async def lookup_word(self, lookups: list[LookupReq]) -> list[LookupResp]:
-        result = dict()
-        coros = list()
-        for idx, lookup in enumerate(lookups):
-            # fetch_result = await self.__word_lookup_repo.get_by_sentence_and_word(
-            #     lookup.sentence_id, lookup.word_id
-            # )
-            # fetch_result = fetch_result.value_or(None)
-            # print(fetch_result)
-            # if fetch_result is not None:
-            #     result[idx] = LookupResp(word_id=lookup.word_id, text=fetch_result.text)
-            # else:
-            coros.append(self.__look_req(idx, lookup))
+    async def lookup_word(self, lookup_requests: list[LookupReq]) -> list[LookupResp]:
+        logger.info(
+            "Received {} lookup request(s) for word explanations",
+            len(lookup_requests),
+        )
 
-        for idx, lookup, text in await asyncio.gather(*coros):
-            result[idx] = LookupResp(word_id=lookup.word_id, text=text)
+        lookup_coroutines = [
+            self.__process_lookup_request(lookup_request)
+            for lookup_request in lookup_requests
+        ]
 
-        return [result[k] for k in sorted(result.keys())]
+        results = await asyncio.gather(*lookup_coroutines)
 
-    async def __look_req(
-        self, idx: int, lookup: LookupReq
-    ) -> tuple[int, LookupReq, str | None]:
-        print(lookup)
+        logger.info("Finished processing {} lookup request(s)", len(lookup_requests))
+        return results
+
+    async def __process_lookup_request(self, lookup_request: LookupReq) -> LookupResp:
+        sentence_id = lookup_request.sentence_id
+        word_id = lookup_request.word_id
+
+        logger.debug(
+            "Processing lookup request: sentence_id={}, word_id={}",
+            sentence_id,
+            word_id,
+        )
+
+        cached_lookup = await self.__word_lookup_repository.get_by_sentence_and_word(
+            sentence_id,
+            word_id,
+        )
+        cached_lookup = cached_lookup.value_or(None)
+
+        if cached_lookup is not None:
+            logger.debug(
+                "Cache hit for sentence_id={} word_id={}",
+                sentence_id,
+                word_id,
+            )
+            return LookupResp(word_id=word_id, text=cached_lookup.text)
+
+        logger.debug(
+            "Cache miss for sentence_id={} word_id={}, fetching.",
+            sentence_id,
+            word_id,
+        )
+
         match await FutureResult.do(
-            value
-            for sentence in await self.__sentence_repo.get_by_id(lookup.sentence_id)
-            for word in await self.__word_repo.get_by_id(lookup.word_id)
-            for value in await lookup_word(sentence.text, word.text)
+            definition_text
+            for sentence in await self.__sentence_repository.get_by_id(sentence_id)
+            for word in await self.__word_repository.get_by_id(word_id)
+            for definition_text in await lookup_word(sentence.text, word.text)
         ):
-            case IOResult(Success(text)):
-                return idx, lookup, text
-            case IOResult(Failure(err)) | IOFailure(err):
-                logger.error(err)
-                return idx, lookup, None
-            case _:
-                return idx, lookup, None
+            case IOResult(Success(definition_text)):
+                logger.info(
+                    "Successfully fetched definition for sentence_id={} word_id={}",
+                    sentence_id,
+                    word_id,
+                )
+
+                created_or_existing_lookup = (
+                    await self.__word_lookup_repository.get_or_create(
+                        sentence_id,
+                        word_id,
+                        definition_text,
+                    )
+                )
+                return LookupResp(
+                    word_id=word_id,
+                    text=created_or_existing_lookup.text,
+                )
+
+            case IOResult(Failure(error)) | IOFailure(error):
+                logger.warning(
+                    "Failed to fetch definition for sentence_id={} word_id={} due to error: {}",
+                    sentence_id,
+                    word_id,
+                    error,
+                )
+                return LookupResp(word_id=word_id, text=None)
+
+            case other:
+                logger.error(
+                    "Unexpected lookup result for sentence_id={} word_id={}: {!r}",
+                    sentence_id,
+                    word_id,
+                    other,
+                )
+                return LookupResp(word_id=word_id, text=None)
 
 
 async def get_lookup_service(

@@ -12,4 +12,3 @@ async def translate_word(
     lookup_service: LookupService = Depends(get_lookup_service),
 ):
     return await lookup_service.lookup_word(payload)
-    # return [LookupResp(word_id="6619d11755564b77aad7414d9f8032fd", text="HHH")]
