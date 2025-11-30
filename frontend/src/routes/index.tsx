@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-// import "@/App.css";
+import "@/App.css";
 import { useAnnotatedArticle } from "@/hooks/useAnnotatedArticle";
 import { Card, CardContent } from "@/components/ui/card";
 

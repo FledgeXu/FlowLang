@@ -14,7 +14,6 @@ import parse, {
 import { fetchArticle } from "@/api/article";
 import { lookupWords } from "@/api/lookup";
 import type { LookupReq, LookupResp } from "@/type/lookup";
-import { cn } from "@/lib/utils";
 
 export function useAnnotatedArticle(url: string) {
   const articleQuery = useQuery<string>({
@@ -57,7 +56,7 @@ async function annotateHtml(html: string): Promise<ReactNode> {
     const lookupResp = await lookupWords(req);
     const textMap = toLookupMap(lookupResp);
 
-    return addRubyToHardWords(html, textMap);
+    return decorateHardWords(html, textMap);
   } catch (e) {
     console.error("lookupWords failed", e);
     return parse(html);
@@ -68,7 +67,7 @@ function toLookupMap(results: LookupResp[]) {
   return new Map(results.filter((r) => r.text).map((r) => [r.wordId, r.text!]));
 }
 
-function addRubyToHardWords(
+function decorateHardWords(
   html: string,
   textMap: Map<string, string>,
 ): ReactNode {
@@ -90,13 +89,7 @@ function addRubyToHardWords(
       return (
         <Tooltip>
           <TooltipTrigger>
-            <span
-              {...childProps}
-              className={cn(
-                childProps.className,
-                "underline decoration-dotted underline-offset-4",
-              )}
-            >
+            <span {...childProps}>
               {domToReact(domNode.children as unknown as DOMNode[])}
             </span>
           </TooltipTrigger>
