@@ -8,7 +8,7 @@ import pluginQuery from '@tanstack/eslint-plugin-query'
 
 
 export default defineConfig([
-  globalIgnores(['dist']),
+  globalIgnores(['dist', 'src/routeTree.gen.ts']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [
