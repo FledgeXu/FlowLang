@@ -16,7 +16,7 @@ from app.schemas.lookup import LookupReq, LookupResp
 
 
 async def invoke_cheapest_word(conversation: list[dict], **kargs):
-    model = init_chat_model("gpt-5-mini", **kargs)
+    model = init_chat_model(SETTING.MODEL_SPEED, **kargs)
     return (await model.ainvoke(conversation)).content
 
 
