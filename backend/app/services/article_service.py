@@ -140,7 +140,7 @@ class ArticleService:
     ):
         sentence = await self.__sentence_repo.get_or_create(sent.text.strip())
         sent_span = soup.new_tag(
-            "span", attrs={"class": "sent", "sent-id": sentence.id.hex}
+            "span", attrs={"class": "sent", "sent-id": str(sentence.id)}
         )
         has_valid_word = False
 
@@ -178,9 +178,7 @@ class ArticleService:
 
         word_span = soup.new_tag(
             "span",
-            attrs={
-                "word-id": word.id.hex,
-            },
+            attrs={"word-id": str(word.id)},
         )
 
         if lemma in hard_words:
