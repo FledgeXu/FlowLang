@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import "@/App.css";
+// import "@/App.css";
 import { useAnnotatedArticle } from "@/hooks/useAnnotatedArticle";
+import { Card, CardContent } from "@/components/ui/card";
 
 const ARTICLE_URL =
   "https://www.penguin.co.uk/discover/articles/why-we-read-classics-italo-calvino";
@@ -17,8 +18,12 @@ function RootComponent() {
   if (isError) return <>Error: {(error as Error).message}</>;
 
   return (
-    <div className="mx-auto max-w-3xl p-6">
-      <article className="prose reader">{content}</article>
+    <div className="m-4 p-4">
+      <Card>
+        <CardContent>
+          <div className="prose max-w-none">{content}</div>
+        </CardContent>
+      </Card>
     </div>
   );
 }

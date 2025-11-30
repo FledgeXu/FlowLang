@@ -14,6 +14,7 @@ import parse, {
 import { fetchArticle } from "@/api/article";
 import { lookupWords } from "@/api/lookup";
 import type { LookupReq, LookupResp } from "@/type/lookup";
+import { cn } from "@/lib/utils";
 
 export function useAnnotatedArticle(url: string) {
   const articleQuery = useQuery<string>({
@@ -89,7 +90,13 @@ function addRubyToHardWords(
       return (
         <Tooltip>
           <TooltipTrigger>
-            <span {...childProps}>
+            <span
+              {...childProps}
+              className={cn(
+                childProps.className,
+                "underline decoration-dotted underline-offset-4",
+              )}
+            >
               {domToReact(domNode.children as unknown as DOMNode[])}
             </span>
           </TooltipTrigger>
