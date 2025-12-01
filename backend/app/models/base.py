@@ -58,7 +58,8 @@ class WordLookup(Base):
         ForeignKey("words.id"), nullable=True, index=True
     )
 
-    text: Mapped[str]
+    text: Mapped[str] = mapped_column(Text, nullable=True)
+    language: Mapped[str] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

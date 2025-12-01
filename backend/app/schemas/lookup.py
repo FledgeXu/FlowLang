@@ -16,4 +16,5 @@ class LookupResp(BaseModel):
     )
 
     word_id: uuid.UUID
+    language: str
     text: str | None
