@@ -21,7 +21,7 @@ async def invoke_cheapest_word(conversation: list[dict], **kargs):
 
 
 @future_safe
-async def lookup_word(sentence: str, word: str) -> str:
+async def lookup_word(sentence: str, word: str, language: str) -> str:
     conversation = [
         {
             "role": "system",
@@ -30,12 +30,12 @@ You are a translation disambiguation assistant.
 Given:
 - a sentence
 - a target word from that sentence
-- an output language code: {SETTING.LOCALE}
+- an output language code: {language}
 Task:
 Provide the most accurate translation of the target word **as it is used in the sentence**, considering its contextual meaning. 
 Constraints:
 - Output ONLY the translation, no explanations.
-- Translation must be in the language specified by {SETTING.LOCALE}.
+- Translation must be in the language specified by {language}.
 - Keep the output short: ideally around 20 tokens or fewer.
 - Do NOT translate the whole sentence; only the given word in context.""",
         },
@@ -61,14 +61,16 @@ class LookupService:
         self.__sentence_repository = sentence_repository
         self.__word_lookup_repository = word_lookup_repository
 
-    async def lookup_word(self, lookup_requests: list[LookupReq]) -> list[LookupResp]:
+    async def lookup_word(
+        self, lookup_requests: list[LookupReq], language: str
+    ) -> list[LookupResp]:
         logger.info(
             "Received {} lookup request(s) for word explanations",
             len(lookup_requests),
         )
 
         lookup_coroutines = [
-            self.__process_lookup_request(lookup_request)
+            self.__process_lookup_request(lookup_request, language)
             for lookup_request in lookup_requests
         ]
 
@@ -77,7 +79,9 @@ class LookupService:
         logger.info("Finished processing {} lookup request(s)", len(lookup_requests))
         return results
 
-    async def __process_lookup_request(self, lookup_request: LookupReq) -> LookupResp:
+    async def __process_lookup_request(
+        self, lookup_request: LookupReq, language: str
+    ) -> LookupResp:
         sentence_id = lookup_request.sentence_id
         word_id = lookup_request.word_id
 
@@ -88,8 +92,7 @@ class LookupService:
         )
 
         cached_lookup = await self.__word_lookup_repository.get_by_sentence_and_word(
-            sentence_id,
-            word_id,
+            sentence_id, word_id, language
         )
         cached_lookup = cached_lookup.value_or(None)
 
@@ -99,7 +102,11 @@ class LookupService:
                 sentence_id,
                 word_id,
             )
-            return LookupResp(word_id=word_id, text=cached_lookup.text)
+            return LookupResp(
+                word_id=word_id,
+                language=cached_lookup.language,
+                text=cached_lookup.text,
+            )
 
         logger.debug(
             "Cache miss for sentence_id={} word_id={}, fetching.",
@@ -111,7 +118,7 @@ class LookupService:
             definition_text
             for sentence in await self.__sentence_repository.get_by_id(sentence_id)
             for word in await self.__word_repository.get_by_id(word_id)
-            for definition_text in await lookup_word(sentence.text, word.text)
+            for definition_text in await lookup_word(sentence.text, word.text, language)
         ):
             case IOResult(Success(definition_text)):
                 logger.info(
@@ -122,13 +129,12 @@ class LookupService:
 
                 created_or_existing_lookup = (
                     await self.__word_lookup_repository.get_or_create(
-                        sentence_id,
-                        word_id,
-                        definition_text,
+                        sentence_id, word_id, definition_text, language
                     )
                 )
                 return LookupResp(
                     word_id=word_id,
+                    language=language,
                     text=created_or_existing_lookup.text,
                 )
 
@@ -139,7 +145,7 @@ class LookupService:
                     word_id,
                     error,
                 )
-                return LookupResp(word_id=word_id, text=None)
+                return LookupResp(word_id=word_id, language=language, text=None)
 
             case other:
                 logger.error(
@@ -148,7 +154,7 @@ class LookupService:
                     word_id,
                     other,
                 )
-                return LookupResp(word_id=word_id, text=None)
+                return LookupResp(word_id=word_id, language=language, text=None)
 
 
 async def get_lookup_service(

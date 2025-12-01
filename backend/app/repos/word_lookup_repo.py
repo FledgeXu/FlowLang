@@ -13,25 +13,27 @@ from app.repos import BaseRepository
 
 class WordLookupRepository(BaseRepository):
     async def get_by_sentence_and_word(
-        self, sentence_id: uuid.UUID, word_id: uuid.UUID
+        self, sentence_id: uuid.UUID, word_id: uuid.UUID, language: str
     ) -> Maybe[WordLookup]:
         async with self.session() as session:
             stmt = (
                 select(WordLookup)
                 .where(WordLookup.sentence_id == sentence_id)
                 .where(WordLookup.word_id == word_id)
+                .where(WordLookup.language == language)
             )
             result = await session.execute(stmt)
             return Maybe.from_optional(result.scalar_one_or_none())
 
     async def get_or_create(
-        self, sentence_id: uuid.UUID, word_id: uuid.UUID, text: str
+        self, sentence_id: uuid.UUID, word_id: uuid.UUID, text: str, language: str
     ) -> WordLookup:
         async with self.session() as session:
             stmt = (
                 select(WordLookup)
                 .where(WordLookup.sentence_id == sentence_id)
                 .where(WordLookup.word_id == word_id)
+                .where(WordLookup.language == language)
             )
             result = await session.execute(stmt)
             existing = result.scalar_one_or_none()
@@ -39,7 +41,9 @@ class WordLookupRepository(BaseRepository):
             if existing:
                 return existing
 
-            lookup = WordLookup(sentence_id=sentence_id, word_id=word_id, text=text)
+            lookup = WordLookup(
+                sentence_id=sentence_id, word_id=word_id, text=text, language=language
+            )
             session.add(lookup)
 
             await session.flush()
