@@ -3,5 +3,8 @@ export type ArticleReq = {
 };
 
 export type ArticleResp = {
+  title: string,
+  author: string,
+  lang: string
   rawHtml: string;
 };

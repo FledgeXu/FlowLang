@@ -12,5 +12,7 @@ class ArticleResp(BaseModel):
     model_config = ConfigDict(
         extra="forbid", alias_generator=to_camel, populate_by_name=True
     )
-
+    title: str
+    author: str
+    lang: str
     raw_html: str

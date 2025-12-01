@@ -17,6 +17,7 @@ from app.core import SETTING
 from app.repos.sentence_repo import SentenceRepository, get_sentence_repo
 from app.repos.word_repo import WordRepository, get_word_repo
 
+from app.schemas import ArticleResp
 from .language_loader_service import LanguageLoaderService, get_language_loader_service
 
 
@@ -31,9 +32,20 @@ class ArticleService:
         self.__sentence_repo = sentence_repo
         self.__language_loader = language_loader
 
-    async def fetch_url(self, url: str) -> IOResultE[str]:
+    async def fetch_url(self, url: str) -> IOResultE[ArticleResp]:
         article_result = self.__download_article(url)
-        return await article_result.bind_awaitable(self.__parse_html)
+        artilce_wrap = await article_result
+        raw_html_wrap = await article_result.bind_awaitable(self.__parse_html)
+        return IOResultE.do(
+            ArticleResp(
+                title=artilce.title,
+                author=artilce.author,
+                lang=artilce.language,
+                raw_html=raw_html,
+            )
+            for artilce in artilce_wrap
+            for raw_html in raw_html_wrap
+        )
 
     @future_safe
     async def __download_article(self, url: str) -> Article:
