@@ -12,7 +12,6 @@ dependencies = [
     "en-core-web-lg @ https://github.com/explosion/spacy-models/releases/download/en_core_web_lg-3.8.0/en_core_web_lg-3.8.0-py3-none-any.whl",
     "zh_core_web_lg @ https://github.com/explosion/spacy-models/releases/download/zh_core_web_lg-3.8.0/zh_core_web_lg-3.8.0-py3-none-any.whl",
     "ja_core_news_lg @ https://github.com/explosion/spacy-models/releases/download/ja_core_news_lg-3.8.0/ja_core_news_lg-3.8.0-py3-none-any.whl",
-    "babel>=2.17.0",
     "langchain>=1.1.0",
     "sqlalchemy[postgresql-psycopg]>=2.0.44",
     "httpx>=0.28.1",
