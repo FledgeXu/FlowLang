@@ -1,6 +1,6 @@
 import uuid
 
-from sqlalchemy import UUID, DateTime, ForeignKey, Integer, MetaData, Text, func
+from sqlalchemy import JSON, UUID, DateTime, ForeignKey, Integer, MetaData, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 convention = {
@@ -75,6 +75,17 @@ class RawArticle(Base):
 
     url: Mapped[str] = mapped_column(Text, nullable=True)
     raw_html: Mapped[str] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class Mindmap(Base):
+    __tablename__ = "mindmap"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    data: Mapped[dict] = mapped_column(JSON)
 
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
