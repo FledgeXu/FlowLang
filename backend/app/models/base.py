@@ -85,6 +85,7 @@ class Mindmap(Base):
     __tablename__ = "mindmap"
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    text: Mapped[str] = mapped_column(Text, nullable=True)
     data: Mapped[dict] = mapped_column(JSON)
 
     created_at: Mapped[DateTime] = mapped_column(
