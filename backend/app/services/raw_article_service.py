@@ -1,0 +1,30 @@
+from collections.abc import AsyncGenerator
+
+import httpx
+from fastapi import Depends
+from returns.future import future_safe
+
+from app.core.setting import SETTING
+from app.models.base import RawArticle
+from app.repos.raw_article_repo import RawArticleRepository, get_raw_article_repo
+
+
+class RawArticleService:
+    def __init__(self, raw_article_repo: RawArticleRepository) -> None:
+        self.__raw_article_repo = raw_article_repo
+
+    async def get_or_create(self, url: str, raw_html: str) -> RawArticle:
+        return await self.__raw_article_repo.get_or_create(url, raw_html)
+
+    @future_safe
+    async def fetch_raw_article(self, url: str) -> RawArticle:
+        async with httpx.AsyncClient(timeout=SETTING.TIMEOUT_TIME) as client:
+            r = await client.get(url)
+            r.raise_for_status()
+            return await self.get_or_create(url=url, raw_html=r.text)
+
+
+async def get_raw_article_service(
+    raw_article_repo: RawArticleRepository = Depends(get_raw_article_repo),
+) -> AsyncGenerator[RawArticleService, None]:
+    yield RawArticleService(raw_article_repo)

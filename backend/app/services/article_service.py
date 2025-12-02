@@ -1,23 +1,21 @@
 from collections.abc import AsyncGenerator
 
-import httpx
 import polars as pl
 from bs4 import BeautifulSoup, Tag
 from bs4.element import NavigableString, PageElement
 from fastapi import Depends
 from returns.future import future_safe
-from returns.io import IOResultE
 from spacy.language import Language
 from spacy.tokens.span import Span
 from spacy.tokens.token import Token
 
 from app import nlp_utils
 from app.content import Article
-from app.core import SETTING
+from app.models.base import RawArticle
 from app.repos.sentence_repo import SentenceRepository, get_sentence_repo
 from app.repos.word_repo import WordRepository, get_word_repo
-
 from app.schemas import ArticleResp
+
 from .language_loader_service import LanguageLoaderService, get_language_loader_service
 
 
@@ -32,27 +30,17 @@ class ArticleService:
         self.__sentence_repo = sentence_repo
         self.__language_loader = language_loader
 
-    async def fetch_url(self, url: str) -> IOResultE[ArticleResp]:
-        article_result = self.__download_article(url)
-        artilce_wrap = await article_result
-        raw_html_wrap = await article_result.bind_awaitable(self.__parse_html)
-        return IOResultE.do(
-            ArticleResp(
-                title=artilce.title,
-                author=artilce.author,
-                lang=artilce.language,
-                raw_html=raw_html,
-            )
-            for artilce in artilce_wrap
-            for raw_html in raw_html_wrap
-        )
-
     @future_safe
-    async def __download_article(self, url: str) -> Article:
-        async with httpx.AsyncClient(timeout=SETTING.TIMEOUT_TIME) as client:
-            r = await client.get(url)
-            r.raise_for_status()
-            return Article(r.text)
+    async def process_article(self, raw_article: RawArticle) -> ArticleResp:
+        article = Article(raw_html=raw_article.raw_html)
+        parsed_html = await self.__parse_html(article)
+        return ArticleResp(
+            id=raw_article.id,
+            title=article.title,
+            author=article.author,
+            lang=article.language,
+            raw_html=parsed_html,
+        )
 
     async def __parse_html(self, article: Article) -> str:
         nlp = self.__language_loader.model(article.language)

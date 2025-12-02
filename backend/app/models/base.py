@@ -64,3 +64,18 @@ class WordLookup(Base):
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
+
+
+class RawArticle(Base):
+    __tablename__ = "raw_article"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+
+    url: Mapped[str] = mapped_column(Text, nullable=True)
+    raw_html: Mapped[str] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
