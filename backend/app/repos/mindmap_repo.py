@@ -1,13 +1,13 @@
 import uuid
 from collections.abc import AsyncGenerator
 
+from db_models import Mindmap
 from fastapi import Depends
 from returns.maybe import Maybe
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.engine import get_async_session_maker
-from app.models.base import Mindmap
 from app.repos import BaseRepository
 
 

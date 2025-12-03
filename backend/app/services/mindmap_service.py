@@ -1,17 +1,16 @@
 from collections.abc import AsyncGenerator
 
+from db_models import Mindmap, RawArticle
 from fastapi import Depends
-from app.domain.article import Article
-from app.llm.client import invoke_prompts_structured
 from returns.future import future_safe
-from returns.io import IOSuccess, IOResultE
+from returns.io import IOResultE, IOSuccess
 from returns.maybe import Some
 
 from app.core.settings import SETTINGS
+from app.domain.article import Article
+from app.llm.client import invoke_prompts_structured
 from app.llm.schemas import MindNode
-from app.models.base import Mindmap, RawArticle
 from app.repos.mindmap_repo import MindmapRepository, get_minimap_repo
-from app.repos.word_repo import get_word_repo
 
 
 class MindmapService:

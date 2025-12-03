@@ -3,15 +3,15 @@ from collections.abc import AsyncGenerator
 import polars as pl
 from bs4 import BeautifulSoup, Tag
 from bs4.element import NavigableString, PageElement
+from db_models import RawArticle
 from fastapi import Depends
 from returns.future import future_safe
 from spacy.language import Language
 from spacy.tokens.span import Span
 from spacy.tokens.token import Token
 
-from app.nlp.word import lemma_of_word
 from app.domain import Article
-from app.models.base import RawArticle
+from app.nlp.word import lemma_of_word
 from app.repos.sentence_repo import SentenceRepository, get_sentence_repo
 from app.repos.word_repo import WordRepository, get_word_repo
 from app.schemas import ArticleResp
@@ -61,10 +61,7 @@ class ArticleService:
         language = article.language
         word_freq = self.__language_loader.word_freq(language)
 
-        lemmas = [
-            lemma_of_word(token, language)
-            for token in nlp(article.plain_text)
-        ]
+        lemmas = [lemma_of_word(token, language) for token in nlp(article.plain_text)]
 
         df = word_freq.filter(pl.col("word").is_in(lemmas))
         if df.height == 0:

@@ -1,3 +1,0 @@
-resources/japanese_freq.parquet filter=lfs diff=lfs merge=lfs -text
-resources/chinese_freq.parquet filter=lfs diff=lfs merge=lfs -text
-resources/english_freq.parquet filter=lfs diff=lfs merge=lfs -text

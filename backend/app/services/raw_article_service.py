@@ -1,13 +1,13 @@
 from collections.abc import AsyncGenerator
-from returns.maybe import Maybe
 from uuid import UUID
 
 import httpx
+from db_models import RawArticle
 from fastapi import Depends
 from returns.future import future_safe
+from returns.maybe import Maybe
 
 from app.core.settings import SETTINGS
-from app.models.base import RawArticle
 from app.repos.raw_article_repo import RawArticleRepository, get_raw_article_repo
 
 
