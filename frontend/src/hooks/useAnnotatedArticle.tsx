@@ -44,7 +44,7 @@ export function useAnnotatedArticle(url: string) {
 }
 
 async function annotateHtml(html: string): Promise<ReactNode> {
-  const pairs = collectHardWordPairs(html);
+  const pairs = extractHardWordPairs(html);
   if (pairs.length === 0) return parse(html);
 
   try {
@@ -56,7 +56,7 @@ async function annotateHtml(html: string): Promise<ReactNode> {
     const lookupResp = await lookupWords(req);
     const textMap = toLookupMap(lookupResp);
 
-    return decorateHardWords(html, textMap);
+    return renderAnnotatedHtml(html, textMap);
   } catch (e) {
     console.error("lookupWords failed", e);
     return parse(html);
@@ -67,46 +67,13 @@ function toLookupMap(results: LookupResp[]) {
   return new Map(results.filter((r) => r.text).map((r) => [r.wordId, r.text!]));
 }
 
-function decorateHardWords(
-  html: string,
-  textMap: Map<string, string>,
-): ReactNode {
-  return parse(html, {
-    replace: (domNode) => {
-      if (!(domNode instanceof Element)) return;
-
-      const classNames =
-        domNode.attribs?.class?.split(/\s+/).filter(Boolean) ?? [];
-      const isHardWord = classNames.includes("hard-word");
-      if (!isHardWord) return;
-
-      const wordId = domNode.attribs["word-id"];
-      if (!wordId) return;
-
-      const rubyText = textMap.get(wordId) ?? "not found"; // fallback placeholder when lookup misses
-      const childProps = attributesToProps(domNode.attribs, domNode.name);
-
-      return (
-        <Tooltip>
-          <TooltipTrigger>
-            <span {...childProps}>
-              {domToReact(domNode.children as unknown as DOMNode[])}
-            </span>
-          </TooltipTrigger>
-          <TooltipContent>{rubyText}</TooltipContent>
-        </Tooltip>
-      );
-    },
-  });
-}
-
 export type HardWordPair = {
   sentenceId: string;
   wordId: string;
 };
 
 // Collect unique [sentId, wordId] pairs from the HTML
-export function collectHardWordPairs(html: string): HardWordPair[] {
+export function extractHardWordPairs(html: string): HardWordPair[] {
   const parser = new DOMParser();
   const doc = parser.parseFromString(html, "text/html");
 
@@ -127,4 +94,55 @@ export function collectHardWordPairs(html: string): HardWordPair[] {
 
     return [...pairs, { sentenceId, wordId }];
   }, []);
+}
+
+type ReplaceRule = (
+  domNode: DOMNode,
+  index: number,
+) => Element | string | null | boolean | object | void;
+
+function makeHardWordRule(textMap: Map<string, string>): ReplaceRule {
+  return (domNode, _index) => {
+    if (!(domNode instanceof Element)) return;
+
+    const classNames =
+      domNode.attribs?.class?.split(/\s+/).filter(Boolean) ?? [];
+    const isHardWord = classNames.includes("hard-word");
+    if (!isHardWord) return;
+
+    const wordId = domNode.attribs["word-id"];
+    if (!wordId) return;
+
+    const rubyText = textMap.get(wordId) ?? "not found"; // fallback placeholder when lookup misses
+    const childProps = attributesToProps(domNode.attribs, domNode.name);
+
+    return (
+      <Tooltip>
+        <TooltipTrigger>
+          <span {...childProps}>
+            {domToReact(domNode.children as unknown as DOMNode[])}
+          </span>
+        </TooltipTrigger>
+        <TooltipContent>{rubyText}</TooltipContent>
+      </Tooltip>
+    );
+  };
+}
+
+export function renderAnnotatedHtml(
+  html: string,
+  textMap: Map<string, string>,
+): ReactNode {
+  const rules: ReplaceRule[] = [makeHardWordRule(textMap)];
+  return parse(html, {
+    replace: (domNode, index) => {
+      for (const rule of rules) {
+        const result = rule(domNode, index);
+        if (result !== undefined) {
+          return result;
+        }
+      }
+      return;
+    },
+  });
 }
