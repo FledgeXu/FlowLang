@@ -42,3 +42,16 @@ db-migration = { workspace = true }
 
 [tool.uv.workspace]
 members = ["packages/db-models", "packages/db-migration"]
+
+
+[tool.uv.build-backend]
+module-root = ""
+module-name = "app"
+
+[tool.pyright]
+venvPath = '.'
+venv = ".venv"
+exclude = ['.venv']
+
+[tool.pytest.ini_options]
+asyncio_mode = "auto"
