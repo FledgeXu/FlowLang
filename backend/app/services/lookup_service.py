@@ -2,7 +2,6 @@ import asyncio
 from collections.abc import AsyncGenerator
 
 from fastapi import Depends
-from langchain.chat_models import init_chat_model
 from app.llm.client import invoke_prompts
 from loguru import logger
 from returns.future import FutureResult, future_safe
