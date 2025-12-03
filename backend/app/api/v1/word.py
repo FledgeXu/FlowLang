@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 
 from app.schemas import LookupReq, LookupResp
 from app.services.lookup_service import LookupService, get_lookup_service
-from app.core.setting import SETTING
+from app.core.settings import SETTINGS
 
 router = APIRouter(prefix="/word", tags=["article"])
 
@@ -12,4 +12,4 @@ async def translate_word(
     payload: list[LookupReq],
     lookup_service: LookupService = Depends(get_lookup_service),
 ):
-    return await lookup_service.lookup_word(payload,SETTING.LOCALE)
+    return await lookup_service.lookup_word(payload, SETTINGS.LOCALE)

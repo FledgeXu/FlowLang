@@ -9,8 +9,8 @@ from spacy.language import Language
 from spacy.tokens.span import Span
 from spacy.tokens.token import Token
 
-from app import nlp_utils
-from app.content import Article
+from app.nlp.word import lemma_of_word
+from app.domain import Article
 from app.models.base import RawArticle
 from app.repos.sentence_repo import SentenceRepository, get_sentence_repo
 from app.repos.word_repo import WordRepository, get_word_repo
@@ -62,7 +62,7 @@ class ArticleService:
         word_freq = self.__language_loader.word_freq(language)
 
         lemmas = [
-            nlp_utils.lemma_of_word(token, language)
+            lemma_of_word(token, language)
             for token in nlp(article.plain_text)
         ]
 
@@ -174,7 +174,7 @@ class ArticleService:
         language: str,
     ) -> Tag:
         word = await self.__word_repo.get_or_create(token.text.strip())
-        lemma = nlp_utils.lemma_of_word(token, language)
+        lemma = lemma_of_word(token, language)
 
         word_span = soup.new_tag(
             "span",

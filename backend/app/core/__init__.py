@@ -1,3 +1,3 @@
-from app.core.setting import SETTING
+from app.core.settings import SETTINGS
 
-__all__ = ["SETTING"]
+__all__ = ["SETTINGS"]

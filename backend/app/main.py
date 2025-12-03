@@ -3,7 +3,7 @@ from fastapi import APIRouter, FastAPI, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import article, word
-from app.core.setting import SETTING
+from app.core.settings import SETTINGS
 from app.middleware.exception_handler import http_exception_handler
 
 LANGUAGE_MODEL = {
@@ -18,7 +18,7 @@ app.exception_handler(HTTPException)(http_exception_handler)
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=SETTING.ORIGIN_URLS.split("|"),
+    allow_origins=SETTINGS.ORIGIN_URLS.split("|"),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],

@@ -5,7 +5,7 @@ from dotenv import load_dotenv
 load_dotenv(override=True)
 
 
-class Setting:
+class Settings:
     DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./temp.db")
     DEBUG_MODE = os.getenv("DEBUG_MODE", "false").lower() == "true"
     TIMEOUT_TIME = int(os.getenv("TIMEOUT_TIME", "30"))
@@ -19,4 +19,4 @@ class Setting:
     MODEL_SPEED = os.getenv("MODEL_SPEED", "gpt-5-nano")
 
 
-SETTING = Setting()
+SETTINGS = Settings()

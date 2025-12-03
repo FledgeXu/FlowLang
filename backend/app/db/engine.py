@@ -2,11 +2,11 @@ from typing import AsyncIterable
 
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker, create_async_engine
 
-from app.core import SETTING
+from app.core import SETTINGS
 
 engine = create_async_engine(
-    SETTING.DATABASE_URL,
-    echo=SETTING.DEBUG_MODE,
+    SETTINGS.DATABASE_URL,
+    echo=SETTINGS.DEBUG_MODE,
     pool_pre_ping=True,
 )
 

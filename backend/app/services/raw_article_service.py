@@ -4,7 +4,7 @@ import httpx
 from fastapi import Depends
 from returns.future import future_safe
 
-from app.core.setting import SETTING
+from app.core.settings import SETTINGS
 from app.models.base import RawArticle
 from app.repos.raw_article_repo import RawArticleRepository, get_raw_article_repo
 
@@ -18,7 +18,7 @@ class RawArticleService:
 
     @future_safe
     async def fetch_raw_article(self, url: str) -> RawArticle:
-        async with httpx.AsyncClient(timeout=SETTING.TIMEOUT_TIME) as client:
+        async with httpx.AsyncClient(timeout=SETTINGS.TIMEOUT_TIME) as client:
             r = await client.get(url)
             r.raise_for_status()
             return await self.get_or_create(url=url, raw_html=r.text)

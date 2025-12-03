@@ -8,7 +8,7 @@ from returns.future import FutureResult, future_safe
 from returns.io import IOFailure, IOResult
 from returns.result import Failure, Success
 
-from app.core.setting import SETTING
+from app.core.settings import SETTINGS
 from app.repos.sentence_repo import SentenceRepository, get_sentence_repo
 from app.repos.word_lookup_repo import WordLookupRepository, get_word_lookup_repo
 from app.repos.word_repo import WordRepository, get_word_repo
@@ -16,7 +16,7 @@ from app.schemas.lookup import LookupReq, LookupResp
 
 
 async def invoke_cheapest_word(conversation: list[dict], **kargs):
-    model = init_chat_model(SETTING.MODEL_SPEED, **kargs)
+    model = init_chat_model(SETTINGS.MODEL_SPEED, **kargs)
     return (await model.ainvoke(conversation)).content
 
 
