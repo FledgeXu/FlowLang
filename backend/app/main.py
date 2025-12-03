@@ -4,7 +4,7 @@ from fastapi.middleware.cors import CORSMiddleware
 
 from app.api.v1 import article, word
 from app.core.settings import SETTINGS
-from app.middleware.exception_handler import http_exception_handler
+from app.middlewares.exception_handler import http_exception_handler
 
 LANGUAGE_MODEL = {
     "en": spacy.load("en_core_web_lg"),

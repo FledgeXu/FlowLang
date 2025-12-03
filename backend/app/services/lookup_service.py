@@ -3,6 +3,7 @@ from collections.abc import AsyncGenerator
 
 from fastapi import Depends
 from langchain.chat_models import init_chat_model
+from app.llm.client import invoke_prompts
 from loguru import logger
 from returns.future import FutureResult, future_safe
 from returns.io import IOFailure, IOResult
@@ -15,17 +16,9 @@ from app.repos.word_repo import WordRepository, get_word_repo
 from app.schemas.lookup import LookupReq, LookupResp
 
 
-async def invoke_cheapest_word(conversation: list[dict], **kargs):
-    model = init_chat_model(SETTINGS.MODEL_SPEED, **kargs)
-    return (await model.ainvoke(conversation)).content
-
-
 @future_safe
 async def lookup_word(sentence: str, word: str, language: str) -> str:
-    conversation = [
-        {
-            "role": "system",
-            "content": f"""
+    system_prompt = f"""
 You are a translation disambiguation assistant.
 Given:
 - a sentence
@@ -37,17 +30,11 @@ Constraints:
 - Output ONLY the translation, no explanations.
 - Translation must be in the language specified by {language}.
 - Keep the output short: ideally around 20 tokens or fewer.
-- Do NOT translate the whole sentence; only the given word in context.""",
-        },
-        {
-            "role": "user",
-            "content": f"""
+- Do NOT translate the whole sentence; only the given word in context."""
+    user_prompt = f"""
 sentence: {sentence}
-word: {word} 
-""",
-        },
-    ]
-    return str(await invoke_cheapest_word(conversation))
+word: {word} """
+    return str(await invoke_prompts(SETTINGS.MODEL_SPEED, system_prompt, user_prompt))
 
 
 class LookupService:
