@@ -1,4 +1,6 @@
 from collections.abc import AsyncGenerator
+from returns.maybe import Maybe
+from uuid import UUID
 
 import httpx
 from fastapi import Depends
@@ -22,6 +24,9 @@ class RawArticleService:
             r = await client.get(url)
             r.raise_for_status()
             return await self.get_or_create(url=url, raw_html=r.text)
+
+    async def get_by_id(self, raw_article_id: UUID) -> Maybe[RawArticle]:
+        return await self.__raw_article_repo.get_by_id(raw_article_id)
 
 
 async def get_raw_article_service(

@@ -10,7 +10,7 @@ from returns.maybe import Some
 from app.core.settings import SETTINGS
 from app.llm.schemas import MindNode
 from app.models.base import Mindmap, RawArticle
-from app.repos.mindmap_repo import MindmapRepository
+from app.repos.mindmap_repo import MindmapRepository, get_minimap_repo
 from app.repos.word_repo import get_word_repo
 
 
@@ -74,6 +74,6 @@ class MindmapService:
 
 
 async def get_mindmap_service(
-    mindmap_repo: MindmapRepository = Depends(get_word_repo),
+    mindmap_repo: MindmapRepository = Depends(get_minimap_repo),
 ) -> AsyncGenerator[MindmapService, None]:
     yield MindmapService(mindmap_repo)

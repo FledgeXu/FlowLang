@@ -78,32 +78,32 @@ class Article:
 
     @cached_property
     def site_name(self) -> str:
-        return self.metadata["sitename"]
+        return self.metadata["sitename"] or ""
 
     @cached_property
     def title(self) -> str:
-        return self.metadata["title"]
+        return self.metadata["title"] or ""
 
     @cached_property
     def author(self) -> str:
-        return self.metadata["author"]
+        return self.metadata["author"] or ""
 
     @cached_property
     def date(self) -> str:
-        return self.metadata["date"]
+        return self.metadata["date"] or ""
 
     @cached_property
     def url(self) -> str:
-        return self.metadata["source"]
+        return self.metadata["source"] or ""
 
     @cached_property
     def hostname(self) -> str:
-        return self.metadata["source-hostname"]
+        return self.metadata["source-hostname"] or ""
 
     @cached_property
     def description(self) -> str:
-        return self.metadata["excerpt"]
+        return self.metadata["excerpt"] or ""
 
     @cached_property
     def fingerprint(self) -> str:
-        return self.metadata["fingerprint"]
+        return self.metadata["fingerprint"] or ""

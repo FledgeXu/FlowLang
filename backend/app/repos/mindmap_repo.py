@@ -52,7 +52,7 @@ class MindmapRepository(BaseRepository):
             return Maybe.from_optional(result.scalar_one_or_none())
 
 
-async def get_raw_article_repo(
+async def get_minimap_repo(
     session_maker: async_sessionmaker[AsyncSession] = Depends(get_async_session_maker),
 ) -> AsyncGenerator[MindmapRepository, None]:
     yield MindmapRepository(session_maker)
