@@ -2,13 +2,6 @@ import uuid
 
 from sqlalchemy import JSON, UUID, DateTime, ForeignKey, Integer, MetaData, Text, func
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
-from dotenv import load_dotenv
-import os
-
-load_dotenv(override=True)
-
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite+aiosqlite:///./temp.db")
-
 
 convention = {
     "ix": "ix_%(column_0_label)s",
