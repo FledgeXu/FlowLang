@@ -4,6 +4,7 @@ requires-python = ">=3.13"
 
 [manifest]
 members = [
+    "db-migration",
     "db-models",
     "flowlang",
 ]
@@ -283,6 +284,21 @@ wheels = [
 ]
 
 [[package]]
+name = "db-migration"
+version = "0.1.0"
+source = { editable = "packages/db-migration" }
+
+[package.dev-dependencies]
+dev = [
+    { name = "alembic" },
+]
+
+[package.metadata]
+
+[package.metadata.requires-dev]
+dev = [{ name = "alembic", specifier = ">=1.17.2" }]
+
+[[package]]
 name = "db-models"
 version = "0.1.0"
 source = { editable = "packages/db-models" }
@@ -484,7 +500,7 @@ dependencies = [
 
 [package.dev-dependencies]
 dev = [
-    { name = "alembic" },
+    { name = "db-migration" },
     { name = "pyright" },
 ]
 
@@ -512,7 +528,7 @@ requires-dist = [
 
 [package.metadata.requires-dev]
 dev = [
-    { name = "alembic", specifier = ">=1.17.2" },
+    { name = "db-migration", editable = "packages/db-migration" },
     { name = "pyright", specifier = ">=1.1.407" },
 ]
 
