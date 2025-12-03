@@ -12,25 +12,36 @@ from app.repos import BaseRepository
 
 
 class MindmapRepository(BaseRepository):
-    async def get_or_create(self, text: str, data: dict) -> Mindmap:
+    async def get_or_create(self, text: str, language: str, data: dict) -> Mindmap:
         async with self.session() as session:
-            stmt = select(Mindmap).where(Mindmap.text == text)
+            stmt = (
+                select(Mindmap)
+                .where(Mindmap.text == text)
+                .where(Mindmap.language == language)
+                .where(Mindmap.data == data)
+            )
             result = await session.execute(stmt)
             existing = result.scalar_one_or_none()
 
             if existing:
                 return existing
 
-            word = Mindmap(text=text, data=data)
+            word = Mindmap(text=text, language=language, data=data)
             session.add(word)
 
             await session.flush()
             await session.refresh(word)
             return word
 
-    async def get_by_text(self, text: str) -> Maybe[Mindmap]:
+    async def get_by_text_and_language(
+        self, text: str, language: str
+    ) -> Maybe[Mindmap]:
         async with self.session() as session:
-            stmt = select(Mindmap).where(Mindmap.text == text)
+            stmt = (
+                select(Mindmap)
+                .where(Mindmap.text == text)
+                .where(Mindmap.language == language)
+            )
             result = await session.execute(stmt)
             return Maybe.from_optional(result.scalar_one_or_none())
 
