@@ -9,9 +9,9 @@ from returns.io import IOFailure, IOResult
 from returns.result import Failure, Success
 
 from app.core.settings import SETTINGS
-from app.repos.sentence_repo import SentenceRepository, get_sentence_repo
-from app.repos.word_lookup_repo import WordLookupRepository, get_word_lookup_repo
-from app.repos.word_repo import WordRepository, get_word_repo
+from repos.sentence_repo import SentenceRepository, get_sentence_repo
+from repos.word_lookup_repo import WordLookupRepository, get_word_lookup_repo
+from repos.word_repo import WordRepository, get_word_repo
 from app.schemas.lookup import LookupReq, LookupResp
 
 

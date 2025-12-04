@@ -24,6 +24,7 @@ dependencies = [
     "polars>=1.35.2",
     "langchain-openai>=1.1.0",
     "db-models",
+    "repos",
 ]
 
 [dependency-groups]
@@ -39,9 +40,10 @@ build-backend = "uv_build"
 [tool.uv.sources]
 db-models = { workspace = true }
 db-migration = { workspace = true }
+repos = { workspace = true }
 
 [tool.uv.workspace]
-members = ["packages/db-models", "packages/db-migration"]
+members = ["packages/db-models", "packages/db-migration", "packages/repos"]
 
 
 [tool.uv.build-backend]

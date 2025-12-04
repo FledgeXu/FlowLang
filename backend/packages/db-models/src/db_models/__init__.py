@@ -117,10 +117,13 @@ class DocumentProcessTask(Base):
 
     id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
     status: Mapped[TaskStatus] = mapped_column(
-        SQLEnum(TaskStatus),
+        SQLEnum(
+            TaskStatus,
+            name="task_status",
+            create_constraint=True,
+            native_enum=True,
+        ),
         default=TaskStatus.PENDING,
-        create_constraint=True,
-        native_enum=True,
     )
     updated_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True),

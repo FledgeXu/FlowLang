@@ -10,7 +10,7 @@ from app.core.settings import SETTINGS
 from app.domain.article import Article
 from app.llm.client import invoke_prompts_structured
 from app.llm.schemas import MindNode
-from app.repos.mindmap_repo import MindmapRepository, get_minimap_repo
+from repos.mindmap_repo import MindmapRepository, get_minimap_repo
 
 
 class MindmapService:

@@ -8,7 +8,7 @@ from returns.future import future_safe
 from returns.maybe import Maybe
 
 from app.core.settings import SETTINGS
-from app.repos.raw_article_repo import RawArticleRepository, get_raw_article_repo
+from repos.raw_article_repo import RawArticleRepository, get_raw_article_repo
 
 
 class RawArticleService:

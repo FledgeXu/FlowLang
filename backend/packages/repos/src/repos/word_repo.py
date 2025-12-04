@@ -1,45 +1,44 @@
 import uuid
 from collections.abc import AsyncGenerator
 
-from db_models import RawArticle
+from db_models import Word
 from fastapi import Depends
 from returns.maybe import Maybe
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.engine import get_async_session_maker
-from app.repos import BaseRepository
+from repos import BaseRepository
 
 
-class RawArticleRepository(BaseRepository):
-    async def get_or_create(self, url: str, raw_html: str) -> RawArticle:
+class WordRepository(BaseRepository):
+    async def get_or_create(
+        self,
+        text: str,
+    ) -> Word:
         async with self.session() as session:
-            stmt = (
-                select(RawArticle)
-                .where(RawArticle.url == url)
-                .where(RawArticle.raw_html == raw_html)
-            )
+            stmt = select(Word).where(Word.text == text)
             result = await session.execute(stmt)
             existing = result.scalar_one_or_none()
 
             if existing:
                 return existing
 
-            word = RawArticle(url=url, raw_html=raw_html)
+            word = Word(text=text)
             session.add(word)
 
             await session.flush()
             await session.refresh(word)
             return word
 
-    async def get_by_id(self, raw_article_id: uuid.UUID) -> Maybe[RawArticle]:
+    async def get_by_id(self, word_id: uuid.UUID) -> Maybe[Word]:
         async with self.session() as session:
-            stmt = select(RawArticle).where(RawArticle.id == raw_article_id)
+            stmt = select(Word).where(Word.id == word_id)
             result = await session.execute(stmt)
             return Maybe.from_optional(result.scalar_one_or_none())
 
 
-async def get_raw_article_repo(
+async def get_word_repo(
     session_maker: async_sessionmaker[AsyncSession] = Depends(get_async_session_maker),
-) -> AsyncGenerator[RawArticleRepository, None]:
-    yield RawArticleRepository(session_maker)
+) -> AsyncGenerator[WordRepository, None]:
+    yield WordRepository(session_maker)

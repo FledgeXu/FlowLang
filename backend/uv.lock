@@ -7,6 +7,7 @@ members = [
     "db-migration",
     "db-models",
     "flowlang",
+    "repos",
 ]
 
 [[package]]
@@ -287,6 +288,9 @@ wheels = [
 name = "db-migration"
 version = "0.1.0"
 source = { editable = "packages/db-migration" }
+dependencies = [
+    { name = "db-models" },
+]
 
 [package.dev-dependencies]
 dev = [
@@ -294,6 +298,7 @@ dev = [
 ]
 
 [package.metadata]
+requires-dist = [{ name = "db-models", editable = "packages/db-models" }]
 
 [package.metadata.requires-dev]
 dev = [{ name = "alembic", specifier = ">=1.17.2" }]
@@ -491,6 +496,7 @@ dependencies = [
     { name = "langdetect" },
     { name = "loguru" },
     { name = "polars" },
+    { name = "repos" },
     { name = "returns" },
     { name = "spacy" },
     { name = "sqlalchemy", extra = ["postgresql-psycopg"] },
@@ -519,6 +525,7 @@ requires-dist = [
     { name = "langdetect", specifier = ">=1.0.9" },
     { name = "loguru", specifier = ">=0.7.3" },
     { name = "polars", specifier = ">=1.35.2" },
+    { name = "repos", editable = "packages/repos" },
     { name = "returns", specifier = ">=0.26.0" },
     { name = "spacy", specifier = ">=3.8.11" },
     { name = "sqlalchemy", extras = ["postgresql-psycopg"], specifier = ">=2.0.44" },
@@ -1604,6 +1611,17 @@ wheels = [
     { url = "https://files.pythonhosted.org/packages/8f/cd/867f5ec442d56beb56f5f854f40abcfc75e11d10b11fdb1869dd39c63aaf/regex-2025.11.3-cp314-cp314t-win_amd64.whl", hash = "sha256:adad1a1bcf1c9e76346e091d22d23ac54ef28e1365117d99521631078dfec9de", size = 284286, upload-time = "2025-11-03T21:33:43.324Z" },
     { url = "https://files.pythonhosted.org/packages/20/31/32c0c4610cbc070362bf1d2e4ea86d1ea29014d400a6d6c2486fcfd57766/regex-2025.11.3-cp314-cp314t-win_arm64.whl", hash = "sha256:c54f768482cef41e219720013cd05933b6f971d9562544d691c68699bf2b6801", size = 274741, upload-time = "2025-11-03T21:33:45.557Z" },
 ]
+
+[[package]]
+name = "repos"
+version = "0.1.0"
+source = { editable = "packages/repos" }
+dependencies = [
+    { name = "db-models" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "db-models", editable = "packages/db-models" }]
 
 [[package]]
 name = "requests"

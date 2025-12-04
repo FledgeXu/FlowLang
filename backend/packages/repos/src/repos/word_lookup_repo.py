@@ -8,7 +8,7 @@ from sqlalchemy import Integer, select
 from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
 from app.db.engine import get_async_session_maker
-from app.repos import BaseRepository
+from repos import BaseRepository
 
 
 class WordLookupRepository(BaseRepository):
