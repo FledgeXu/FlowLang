@@ -43,7 +43,12 @@ db-migration = { workspace = true }
 repos = { workspace = true }
 
 [tool.uv.workspace]
-members = ["packages/db-models", "packages/db-migration", "packages/repos"]
+members = [
+    "packages/db-models",
+    "packages/db-migration",
+    "packages/repos",
+    "packages/document-ingestion",
+]
 
 
 [tool.uv.build-backend]
