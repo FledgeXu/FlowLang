@@ -1,6 +1,17 @@
 import uuid
 
-from sqlalchemy import JSON, UUID, DateTime, ForeignKey, Integer, MetaData, Text, func
+from sqlalchemy import (
+    JSON,
+    UUID,
+    DateTime,
+    ForeignKey,
+    Integer,
+    MetaData,
+    Text,
+    func,
+    Enum as SQLEnum,
+)
+from enum import Enum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 convention = {
@@ -89,6 +100,33 @@ class Mindmap(Base):
     language: Mapped[str] = mapped_column(Text, nullable=True)
     data: Mapped[dict] = mapped_column(JSON)
 
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class TaskStatus(Enum):
+    PENDING = "pending"
+    RUNNING = "running"
+    SUCCESS = "success"
+    FAILED = "failed"
+
+
+class DocumentProcessTask(Base):
+    __tablename__ = "document_process_task"
+
+    id: Mapped[int] = mapped_column(Integer, primary_key=True, autoincrement=True)
+    status: Mapped[TaskStatus] = mapped_column(
+        SQLEnum(TaskStatus),
+        default=TaskStatus.PENDING,
+        create_constraint=True,
+        native_enum=True,
+    )
+    updated_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now(),
+    )
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()
     )
