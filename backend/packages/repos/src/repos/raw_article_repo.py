@@ -1,13 +1,9 @@
 import uuid
-from collections.abc import AsyncGenerator
 
 from db_models import RawArticle
-from fastapi import Depends
 from returns.maybe import Maybe
 from sqlalchemy import select
-from sqlalchemy.ext.asyncio import AsyncSession, async_sessionmaker
 
-from app.db.engine import get_async_session_maker
 from repos import BaseRepository
 
 
@@ -39,7 +35,7 @@ class RawArticleRepository(BaseRepository):
             return Maybe.from_optional(result.scalar_one_or_none())
 
 
-async def get_raw_article_repo(
-    session_maker: async_sessionmaker[AsyncSession] = Depends(get_async_session_maker),
-) -> AsyncGenerator[RawArticleRepository, None]:
-    yield RawArticleRepository(session_maker)
+# async def get_raw_article_repo(
+#     session_maker: async_sessionmaker[AsyncSession] = Depends(get_async_session_maker),
+# ) -> AsyncGenerator[RawArticleRepository, None]:
+#     yield RawArticleRepository(session_maker)

@@ -1,4 +1,5 @@
 import uuid
+from enum import Enum
 
 from sqlalchemy import (
     JSON,
@@ -9,9 +10,10 @@ from sqlalchemy import (
     MetaData,
     Text,
     func,
+)
+from sqlalchemy import (
     Enum as SQLEnum,
 )
-from enum import Enum
 from sqlalchemy.orm import DeclarativeBase, Mapped, mapped_column
 
 convention = {
@@ -71,6 +73,31 @@ class WordLookup(Base):
 
     text: Mapped[str] = mapped_column(Text, nullable=True)
     language: Mapped[str] = mapped_column(Text, nullable=True)
+
+    created_at: Mapped[DateTime] = mapped_column(
+        DateTime(timezone=True), server_default=func.now()
+    )
+
+
+class Article(Base):
+    __tablename__ = "article"
+
+    id: Mapped[uuid.UUID] = mapped_column(
+        UUID(as_uuid=True), primary_key=True, default=uuid.uuid4
+    )
+
+    url: Mapped[str] = mapped_column(Text, nullable=True)
+
+    raw_html: Mapped[str] = mapped_column(Text, nullable=True)
+    clean_html: Mapped[str] = mapped_column(Text, nullable=True)
+
+    language: Mapped[str] = mapped_column(Text, nullable=True)
+    site_name: Mapped[str] = mapped_column(Text, nullable=True)
+    title: Mapped[str] = mapped_column(Text, nullable=True)
+    date: Mapped[str] = mapped_column(Text, nullable=True)
+    hostname: Mapped[str] = mapped_column(Text, nullable=True)
+    description: Mapped[str] = mapped_column(Text, nullable=True)
+    fingerprint: Mapped[str] = mapped_column(Text, nullable=True)
 
     created_at: Mapped[DateTime] = mapped_column(
         DateTime(timezone=True), server_default=func.now()

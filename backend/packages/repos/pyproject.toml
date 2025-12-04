@@ -7,7 +7,10 @@ authors = [
     { name = "Fledge Shiu", email = "xzk0701@gmail.com" }
 ]
 requires-python = ">=3.13"
-dependencies = ["db-models"]
+dependencies = [
+    "db-models",
+    "returns>=0.26.0",
+]
 
 [project.scripts]
 repos = "repos:main"
